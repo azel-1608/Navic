@@ -26,6 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
@@ -34,10 +37,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.koinInject
 import paige.navic.R
+import paige.navic.domain.lyrics.JapaneseRomanizer
+import paige.navic.domain.lyrics.Romanizer
 import paige.navic.domain.manager.PreferenceManager
 import paige.navic.domain.model.lyrics.LyricsResult
 import paige.navic.shared.MediaPlayerViewModel
@@ -57,6 +64,7 @@ fun LyricsScreenContent(
 	onRestartAtIndex: (Int) -> Unit,
 	duration: Duration,
 	currentDuration: Duration,
+	romanize: Boolean,
 	contentPadding: PaddingValues
 ) {
 	val density = LocalDensity.current
@@ -73,6 +81,24 @@ fun LyricsScreenContent(
 		selectedIndices.sumOf { lyrics?.getOrNull(it)?.text?.length ?: 0 }
 
 	if (lyrics.isNullOrEmpty()) return LyricsScreenPlaceholder(onRefresh = onRefresh)
+
+	// Romanized display text, memoized per lyrics + toggle state. Kuromoji's
+	// dictionary (~13 MB) loads lazily on a background thread on first use;
+	// until it is ready, kana is still converted and kanji stays untouched.
+	var kuromojiReady by remember { mutableStateOf(JapaneseRomanizer.isReady()) }
+	LaunchedEffect(data, romanize) {
+		if (romanize && lyrics.any { Romanizer.containsRomanizableScript(it.text) }) {
+			withContext(Dispatchers.Default) {
+				JapaneseRomanizer.ensureInitialized()
+			}
+			kuromojiReady = true
+		}
+	}
+	val displayTexts = remember(lyrics, romanize, kuromojiReady) {
+		lyrics.map { line ->
+			if (romanize) Romanizer.romanizeLine(line.text) else line.text
+		}
+	}
 
 	val activeIndex = if (isSynced) {
 		lyrics.indexOfLast { line ->
@@ -133,6 +159,8 @@ fun LyricsScreenContent(
 			val isEmphasised = (isActive && !isSelecting) || isSelected
 			val distance = abs(index - activeIndex)
 
+			val displayText = displayTexts.getOrNull(index) ?: line.text
+
 			val lineTime = line.time ?: 0.milliseconds
 			val preEmphasis = 200.milliseconds
 			val nextTime = lyrics.getOrNull(index + 1)?.time ?: duration
@@ -188,10 +216,12 @@ fun LyricsScreenContent(
 
 			val highlight = if (isSelecting) isSelected else isActive
 			val hasWords = !line.words.isNullOrEmpty()
+			// Word timings refer to the original script, so when the line is
+			// displayed romanized we fall back to line-level progress.
 			val progress = when {
 				isSelecting -> if (isSelected) 1f else 0f
 				!isSynced -> 1f
-				isActive -> line.words
+				isActive -> if (romanize) lineProgress else line.words
 					?.takeIf { it.isNotEmpty() }
 					?.calculateWordProgress(line.text, currentDuration)
 					?: lineProgress
@@ -200,11 +230,11 @@ fun LyricsScreenContent(
 			}
 
 			LyricsScreenKaraokeText(
-				text = line.text,
+				text = displayText,
 				progress = progress,
 				isActive = highlight,
 				isSynced = isSynced,
-				isBeatByBeat = hasWords || preferenceManager.lyricsFakeBeatByBeat,
+				isBeatByBeat = (hasWords || preferenceManager.lyricsFakeBeatByBeat) && !romanize,
 				onClick = {
 					if (isSelecting) {
 						val lineTextLength = line.text.length

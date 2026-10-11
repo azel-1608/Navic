@@ -70,6 +70,7 @@ fun LyricsScreen(
 	val selectedIndices = rememberSaveable { mutableStateListOf<Int>() }
 	var wasPlayingBeforeSelection by rememberSaveable { mutableStateOf(false) }
 	var shareSheetOpen by rememberSaveable { mutableStateOf(false) }
+	var romanize by rememberSaveable { mutableStateOf(false) }
 
 	val song = song ?: return LyricsScreenPlaceholder(
 		onRefresh = { viewModel.refreshResults() }
@@ -119,6 +120,8 @@ fun LyricsScreen(
 				onShare = { shareSheetOpen = true },
 				isSelecting = isSelecting,
 				toggleIsSelecting = toggleIsSelecting,
+				romanize = romanize,
+				onToggleRomanize = { romanize = !romanize },
 				windowInsets = windowInsets,
 				selectedIndices = selectedIndices.toImmutableList()
 			)
@@ -157,6 +160,7 @@ fun LyricsScreen(
 						},
 						duration = duration,
 						currentDuration = currentDuration,
+						romanize = romanize,
 						contentPadding = contentPadding
 					)
 				}

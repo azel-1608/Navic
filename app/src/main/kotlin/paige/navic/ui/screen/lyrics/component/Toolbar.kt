@@ -10,13 +10,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -28,6 +34,7 @@ import paige.navic.ui.icons.outlined.ArrowBack
 import paige.navic.ui.icons.outlined.Check
 import paige.navic.ui.icons.outlined.KeyboardArrowDown
 import paige.navic.ui.icons.outlined.Share
+import paige.navic.ui.component.layout.NestedTopBarButtonDefaults
 import paige.navic.ui.component.layout.TopBarButton
 import paige.navic.ui.component.toolbar.SheetToolbar
 
@@ -37,6 +44,8 @@ fun LyricsScreenToolbar(
 	onShare: () -> Unit,
 	isSelecting: Boolean,
 	toggleIsSelecting: () -> Unit,
+	romanize: Boolean,
+	onToggleRomanize: () -> Unit,
 	windowInsets: WindowInsets,
 	selectedIndices: ImmutableList<Int>
 ) {
@@ -67,6 +76,28 @@ fun LyricsScreenToolbar(
 			)
 		},
 		actions = {
+			if (!isSelecting) {
+				val romanizeDescription = stringResource(R.string.action_toggle_romanization)
+				TopBarButton(
+					modifier = Modifier.semantics {
+						contentDescription = romanizeDescription
+					},
+					onClick = dropUnlessResumed { onToggleRomanize() },
+					colors = NestedTopBarButtonDefaults.colors(
+						contentColor = if (romanize)
+							MaterialTheme.colorScheme.primary
+						else
+							Color.Unspecified
+					)
+				) {
+					Text(
+						text = if (romanize) "A" else "あ",
+						fontSize = 18.sp,
+						fontWeight = FontWeight.Bold,
+						textAlign = TextAlign.Center
+					)
+				}
+			}
 			TopBarButton(
 				enabled = !isSelecting || selectedIndices.isNotEmpty(),
 				onClick = {

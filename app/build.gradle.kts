@@ -136,6 +136,9 @@ android {
 			excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
 			excludes += "/org/bouncycastle/**"
 			excludes += "/META-INF/{AL2.0,LGPL2.1}"
+			// kuromoji-core and kuromoji-ipadic both ship these files
+			excludes += "/META-INF/CONTRIBUTORS.md"
+			excludes += "/META-INF/LICENSE.md"
 		}
 
 		jniLibs {
@@ -238,6 +241,8 @@ dependencies {
 	implementation(libs.koin.compose.viewmodel)
 	implementation(libs.subsonicKotlin)
 	implementation(libs.antisocialcord)
+	// Japanese lyrics romanization (kanji -> kana readings)
+	implementation(libs.kuromojiIpadic)
 	ksp(libs.androidx.room3.compiler)
 	coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

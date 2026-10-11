@@ -398,6 +398,7 @@
 	<string name="action_view_on_musicbrainz">View on MusicBrainz</string>
 	<string name="action_lyrics">Lyrics</string>
 	<string name="action_share_lyrics">Share lyrics</string>
+	<string name="action_toggle_romanization">Romanize lyrics</string>
 	<string name="action_update_app">Update</string>
 	<string name="action_play_next">Play next</string>
 	<string name="action_add_to_queue">Add to queue</string>
